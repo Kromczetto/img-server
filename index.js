@@ -34,7 +34,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10 MB – bezpieczne dla iOS
+    fileSize: 10 * 1024 * 1024 
   },
   fileFilter: (_, file, cb) => {
     if (!file.mimetype.startsWith("image/")) {
@@ -44,9 +44,6 @@ const upload = multer({
   }
 });
 
-/* =========================
-   UPLOAD ENDPOINT
-========================= */
 app.post("/upload-image", upload.single("image"), (req, res) => {
   try {
     if (!req.file) {
@@ -65,10 +62,25 @@ app.post("/upload-image", upload.single("image"), (req, res) => {
   }
 });
 
-/* =========================
-   STATIC FILES (CRITICAL)
-========================= */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+app.delete("/delete-job/:jobId", (req, res) => {
+  const { jobId } = req.params;
+  const dirPath = path.join(__dirname, "uploads", jobId);
+
+  if (!dirPath.startsWith(path.join(__dirname, "uploads"))) {
+    return res.status(400).json({ error: "Invalid path" });
+  }
+
+  fs.rm(dirPath, { recursive: true, force: true }, (err) => {
+    if (err) {
+      console.error("Folder delete error:", err);
+      return res.status(500).json({ error: "Failed to delete job folder" });
+    }
+
+    res.status(200).json({ success: true });
+  });
+});
 
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
