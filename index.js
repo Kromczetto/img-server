@@ -64,6 +64,39 @@ app.post("/upload-image", upload.single("image"), (req, res) => {
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+app.delete("/delete-image", (req, res) => {
+  const { imageUrl } = req.body;
+
+  if (!imageUrl) {
+    return res.status(400).json({ error: "imageUrl required" });
+  }
+
+  try {
+    const uploadsDir = path.join(__dirname, "uploads");
+
+    const imagePath = path.normalize(
+      imageUrl.replace(`${req.protocol}://${req.get("host")}/uploads`, uploadsDir)
+    );
+
+    if (!imagePath.startsWith(uploadsDir)) {
+      return res.status(400).json({ error: "Invalid image path" });
+    }
+
+    if (!fs.existsSync(imagePath)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    fs.unlinkSync(imagePath);
+
+    res.status(200).json({ success: true });
+
+  } catch (err) {
+    console.error("Delete image error:", err);
+    res.status(500).json({ error: "Failed to delete image" });
+  }
+});
+
+
 app.delete("/delete-job/:jobId", (req, res) => {
   const { jobId } = req.params;
   const dirPath = path.join(__dirname, "uploads", jobId);
